@@ -4,12 +4,31 @@ BasicUpstart2(begin)			// <- This creates a basic sys line that can start your p
 //*************************************************
 
 // Animation vars
-//.const pos0 = $02
-//.const fcount = $03
-pos0:    .byte 0 // Array animation position pointer 0
 fcount:  .byte 0 // Frame counter
+pos0:    .byte 0 // Array animation position pointer 0
 xposl0:  .byte 0 // Least significant byte Xpos sprite 0
 xposm0:  .byte 0 // Most significant byte Xpes sprite 0
+pos1:    .byte 2 // Array animation position pointer 0
+xposl1:  .byte 34 // Least significant byte Xpos sprite 0
+xposm1:  .byte 0 // Most significant byte Xpes sprite 0
+pos2:    .byte 4 // Array animation position pointer 0
+xposl2:  .byte 70 // Least significant byte Xpos sprite 0
+xposm2:  .byte 0 // Most significant byte Xpes sprite 0
+pos3:    .byte 6 // Array animation position pointer 0
+xposl3:  .byte 104 // Least significant byte Xpos sprite 0
+xposm3:  .byte 0 // Most significant byte Xpes sprite 0
+pos4:    .byte 8 // Array animation position pointer 0
+xposl4:  .byte 140 // Least significant byte Xpos sprite 0
+xposm4:  .byte 0 // Most significant byte Xpes sprite 0
+pos5:    .byte 10 // Array animation position pointer 0
+xposl5:  .byte 174 // Least significant byte Xpos sprite 0
+xposm5:  .byte 0 // Most significant byte Xpes sprite 0
+pos6:    .byte 12 // Array animation position pointer 0
+xposl6:  .byte 180 // Least significant byte Xpos sprite 0
+xposm6:  .byte 30 // Most significant byte Xpes sprite 0
+pos7:    .byte 14 // Array animation position pointer 0
+xposl7:  .byte 180 // Least significant byte Xpos sprite 0
+xposm7:  .byte 64 // Most significant byte Xpes sprite 0
 		
 //helpful labels
 .const CLEAR = $E544
@@ -18,7 +37,14 @@ xposm0:  .byte 0 // Most significant byte Xpes sprite 0
 
 //sprite 0 setup
 .const SPRITE0 = $7F8
-.const SP0VAL	= $0340
+.const SPRITE1 = $7F9
+.const SPRITE2 = $7FA
+.const SPRITE3 = $7FB
+.const SPRITE4 = $7FC
+.const SPRITE5 = $7FD
+.const SPRITE6 = $7FE
+.const SPRITE7 = $7FF
+.const SP0VAL	= $2000
 .const SP0X	= $D000
 .const SP0Y	= $D001
 .const SP1X = $D002
@@ -30,9 +56,19 @@ xposm0:  .byte 0 // Most significant byte Xpes sprite 0
 .const YEXPAND	= $D017
 .const INTSTATREG = $D019
 .const INTVICCONTREG = $D01A
+.const SPRMULTI = $D01C
 .const XEXPAND	= $D01D
-.const FRAMCOL = $D020
-.const COLOR0  = $D027
+.const FRAMCOL  = $D020
+.const EXCOLOR1 = $D025
+.const EXCOLOR2 = $D026
+.const COLOR0   = $D027
+.const COLOR1   = $D028
+.const COLOR2   = $D029
+.const COLOR3   = $D02A
+.const COLOR4   = $D02B
+.const COLOR5   = $D02C
+.const COLOR6   = $D02D
+.const COLOR7   = $D02E
 .const INTCONTREG = $DC0D
 
 .macro ClearScreen(clearByte) {
@@ -51,24 +87,26 @@ xposm0:  .byte 0 // Most significant byte Xpes sprite 0
          bne !clear-     // did X turn to zero yet?
 }
 
-.macro MoveSpriteX(num) {
-  ldy xposl0 // least significant position byte first
-  ldx xposm0 // most significant position byte
+.macro MoveSpriteX(num, xposl, xposm) {
+  ldy xposl // least significant position byte first
+  ldx xposm // most significant position byte
   cpy #180
   beq spritehigh
   iny
-  sty xposl0
+  iny
+  sty xposl
   jmp spritexpos
 spritehigh:  inx // Add least significant byte to most significant
-  stx xposm0
+  inx
+  stx xposm
   cpx #180
   bne spritexpos // When the msb reaches 160 start back at zero for both
   ldx #0
-  stx xposl0
-  stx xposm0
-spritexpos: lda xposl0
+  stx xposl
+  stx xposm
+spritexpos: lda xposl
   clc
-  adc xposm0
+  adc xposm
   sta SP0X+num*2
   lda MSBX
   ldx #num
@@ -78,13 +116,7 @@ spritexpos: lda xposl0
 spritemost: sta MSBX
 }
 
-.macro MoveSpriteY(num) {
-  ldy SP0Y+num*2
-  iny
-  sty SP0Y+num*2
-}
-
-.macro AnimSprite(sprnum, animp, countp) {
+.macro AnimSprite(num, animp, countp) {
   ldy countp // Get value
   ldx fcount // Frame count
   inx
@@ -92,7 +124,7 @@ spritemost: sta MSBX
   bne over
   ldx #0
   lda animp, y
-  sta SP0Y+sprnum*2
+  sta SP0Y+num*2
   iny // Cycle through animation
   cpy #16
   bne over
@@ -121,50 +153,54 @@ over:  sty countp
 		sta $D017
 }
 
+.macro SpriteMultiColor(bits) {
+		lda #bits	// Sprite 0 double size Y
+		sta SPRMULTI // Multicolor
+}
+
 		* = $4000 "Main Program"		// <- The name 'Main program' will appear in the memory map when assembling		jsr clear
 begin:  SetBorderColor(00)
 		SetBackgroundColor(00)
 		ClearScreen(00)
-    StretchSpriteX(01)
-    StretchSpriteY(01)
+    StretchSpriteX(%11111111)
+    StretchSpriteY(%11111111)
+    SpriteMultiColor(%11111111)
 
-		lda #$0D	//using block 13 for sprite0
+		lda #$80	//using block 13 for sprite0
 		sta SPRITE0
+		lda #$81	//using block 13 for sprite0
+		sta SPRITE1
+		lda #$82	//using block 13 for sprite0
+		sta SPRITE2
+		lda #$81	//using block 13 for sprite0
+		sta SPRITE3
+		lda #$81	//using block 13 for sprite0
+		sta SPRITE4
+		lda #$83	//using block 13 for sprite0
+		sta SPRITE5
+		lda #$84	//using block 13 for sprite0
+		sta SPRITE6
 		
-		lda #01		//enable sprite0
+		lda #%11111111		//enable sprites
 		sta ENABLE
 		
-		lda #07		//use red for sprite0
+		lda #05		//use red for sprite0
 		sta COLOR0
+		sta COLOR1
+		sta COLOR2
+		sta COLOR3
+		sta COLOR4
+		sta COLOR5
+		sta COLOR6
+    lda #09
+    sta EXCOLOR1
+    lda #07
+    sta EXCOLOR2   // 3rd sprite color
 		
     jsr rastinit // Setup the raster interrupt
     
 		ldx #0
 		lda #0
-		
-		//reset the spriteval data
-cleanup:	sta SP0VAL,X
-		inx
-		cpx #63
-		bne cleanup
-		
-		//build the sprite
-		ldx #0
-build:	lda data,X
-		sta SP0VAL,X
-		inx
-		cpx #63
-		bne build
-		
-		//position
-		lda #0		//stick with x0-255
-		sta MSBX
-		
-		//starting sprite location
-		ldx #100
-		ldy #70
-		stx SP0X
-		sty SP0Y
 		
 scan:	jsr SCNKEY	//get key
 		jsr GETIN	//put key in A
@@ -241,9 +277,23 @@ rastinit: lda #%01111111  // Switch of interrupt signals fram CIA-1
 irq1: lda #7 // Turn screen border yellow
     sta FRAMCOL
 
-    MoveSpriteX(0)
+    MoveSpriteX(0, xposl0, xposm0)
+    MoveSpriteX(1, xposl1, xposm1)
+    MoveSpriteX(2, xposl2, xposm2)
+    MoveSpriteX(3, xposl3, xposm3)
+    MoveSpriteX(4, xposl4, xposm4)
+    MoveSpriteX(5, xposl5, xposm5)
+    MoveSpriteX(6, xposl6, xposm6)
+    MoveSpriteX(7, xposl7, xposm7)
     //MoveSpriteY(0)
     AnimSprite(0, bounce, pos0)
+    AnimSprite(1, bounce, pos1)
+    AnimSprite(2, bounce, pos2)
+    AnimSprite(3, bounce, pos3)
+    AnimSprite(4, bounce, pos4)
+    AnimSprite(5, bounce, pos5)
+    AnimSprite(6, bounce, pos6)
+    AnimSprite(7, bounce, pos7)
 
     ldx #90 // Wait loop
 pauze1: dex
@@ -292,24 +342,52 @@ bitmaskinv:
   .byte %01111111
 
 //define the sprite
-data: 	 .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 0,0,0
- .byte 16,0,0
- .byte 16,96,0
- .byte 16,64,0
- .byte 114,253,223
- .byte 149,81,18
- .byte 151,89,154
- .byte 148,81,10
- .byte 115,93,218
- .byte 0,0,0
+.pc = SP0VAL
+.align $40
+data_d: 
+    // d 0 
+    .byte $55, $55, $40, $6a, $aa, $90, $6f, $ff, $a4, $6e, $aa, $e4, $6e, $55, $b9, $6e
+    .byte $41, $b9, $6e, $41, $b9, $6e, $41, $b9, $6e, $41, $b9, $6e, $41, $b9, $6e, $41
+    .byte $b9, $6e, $41, $b9, $6e, $41, $b9, $6e, $41, $b9, $6e, $41, $b9, $6e, $41, $b9
+    .byte $6e, $55, $b9, $6e, $aa, $e4, $6f, $ff, $a4, $6a, $aa, $90, $55, $55, $40, $00
+data_e:
+    // e 1
+    .byte $55, $55, $55, $6a, $aa, $a9, $6f, $ff, $f9, $6e, $aa, $a9, $6e, $55, $55, $6e
+    .byte $40, $00, $6e, $40, $00, $6e, $40, $00, $6e, $55, $50, $6e, $aa, $90, $6f, $ff
+    .byte $90, $6e, $aa, $90, $6e, $55, $50, $6e, $40, $00, $6e, $40, $00, $6e, $40, $00
+    .byte $6e, $55, $55, $6e, $aa, $a9, $6f, $ff, $f9, $6a, $aa, $a9, $55, $55, $55, $00
+data_f:
+    // f 2
+    .byte $55, $55, $55, $6a, $aa, $a9, $6f, $ff, $f9, $6e, $aa, $a9, $6e, $55, $55, $6e
+    .byte $40, $00, $6e, $40, $00, $6e, $40, $00, $6e, $55, $50, $6e, $aa, $90, $6f, $ff
+    .byte $90, $6e, $aa, $90, $6e, $55, $50, $6e, $40, $00, $6e, $40, $00, $6e, $40, $00
+    .byte $6e, $40, $00, $6e, $40, $00, $6e, $40, $00, $6a, $40, $00, $55, $40, $00, $00 
+    // s 3
+data_s:
+    .byte $00, $55, $00
+    .byte $05, $aa, $50
+    .byte $1a, $ff, $a4
+    .byte $1b, $aa, $e4
+    .byte $6e, $55, $b9
+    .byte $6e, $41, $b9
+    .byte $6e, $40, $64
+    .byte $6e, $55, $10
+    .byte $6b, $aa, $40
+    .byte $1a, $fe, $90
+    .byte $06, $ab, $a4
+    .byte $01, $56, $e9
+    .byte $00, $01, $b9
+    .byte $04, $01, $b9
+    .byte $19, $01, $b9
+    .byte $6e, $41, $b9
+    .byte $6e, $56, $b9
+    .byte $1b, $aa, $e4
+    .byte $1a, $ff, $a4
+    .byte $05, $aa, $50
+    .byte $00, $55, $00, $00
+    // t 4
+data_t:
+    .byte $55, $55, $54, $6a, $aa, $a4, $6f, $ff, $e4, $6a, $ba, $a4, $55, $b9, $54, $01
+    .byte $b9, $00, $01, $b9, $00, $01, $b9, $00, $01, $b9, $00, $01, $b9, $00, $01, $b9
+    .byte $00, $01, $b9, $00, $01, $b9, $00, $01, $b9, $00, $01, $b9, $00, $01, $b9, $00
+    .byte $01, $b9, $00, $01, $b9, $00, $01, $b9, $00, $01, $a9, $00, $01, $55, $00, $00   
