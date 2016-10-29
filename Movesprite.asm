@@ -202,52 +202,13 @@ begin:  SetBorderColor(00)
 		ldx #0
 		lda #0
 		
+// Main loop
 scan:	jsr SCNKEY	//get key
 		jsr GETIN	//put key in A
 
-start:	cmp #87		//W - up
-		beq up
-		
-		cmp #83		//S - down
-		beq down
-		
-		cmp #65		//A - left
-		beq left
-		
-		cmp #68		//D - right
-		beq right
-		
-		cmp #13	//end if enter clicked
+start:	
+    cmp #13	//end if enter clicked
 		beq end
-		
-		jmp scan
-
-up:		ldy SP0Y
-		dey
-		sty SP0Y
-		jmp scan
-
-down:	ldy SP0Y
-		iny
-		sty SP0Y
-		jmp scan
-
-left:	ldx SP0X
-		dex
-		stx SP0X
-		cpx #255
-		bne scan
-		lda #0
-		sta MSBX
-		jmp scan
-
-right:	ldx SP0X
-		inx
-		stx SP0X
-		cpx #255
-		bne scan
-		lda #1
-		sta MSBX
 		jmp scan
 
 		//clean up at the end
@@ -305,7 +266,7 @@ pauze1: dex
     asl INTSTATREG
     jmp $EA31
 		 	
-// Bouncing animation
+// Bouncing animation data generation
 .var i=0;
 .var len=16
 bounce:
@@ -321,7 +282,7 @@ bounce:
   .byte x
 }
 
-// Sprite bitmask
+// Lazy man bitmask
 bitmask: 
   .byte %00000001
   .byte %00000010
@@ -364,27 +325,10 @@ data_f:
     .byte $6e, $40, $00, $6e, $40, $00, $6e, $40, $00, $6a, $40, $00, $55, $40, $00, $00 
     // s 3
 data_s:
-    .byte $00, $55, $00
-    .byte $05, $aa, $50
-    .byte $1a, $ff, $a4
-    .byte $1b, $aa, $e4
-    .byte $6e, $55, $b9
-    .byte $6e, $41, $b9
-    .byte $6e, $40, $64
-    .byte $6e, $55, $10
-    .byte $6b, $aa, $40
-    .byte $1a, $fe, $90
-    .byte $06, $ab, $a4
-    .byte $01, $56, $e9
-    .byte $00, $01, $b9
-    .byte $04, $01, $b9
-    .byte $19, $01, $b9
-    .byte $6e, $41, $b9
-    .byte $6e, $56, $b9
-    .byte $1b, $aa, $e4
-    .byte $1a, $ff, $a4
-    .byte $05, $aa, $50
-    .byte $00, $55, $00, $00
+    .byte $00, $55, $00, $05, $aa, $50, $1a, $ff, $a4, $1b, $aa, $e4, $6e, $55, $b9, $6e
+    .byte $41, $b9, $6e, $40, $64, $6e, $55, $10, $6b, $aa, $40, $1a, $fe, $90, $06, $ab
+    .byte $a4, $01, $56, $e9, $00, $01, $b9, $04, $01, $b9, $19, $01, $b9, $6e, $41, $b9
+    .byte $6e, $56, $b9, $1b, $aa, $e4, $1a, $ff, $a4, $05, $aa, $50, $00, $55, $00, $00
     // t 4
 data_t:
     .byte $55, $55, $54, $6a, $aa, $a4, $6f, $ff, $e4, $6a, $ba, $a4, $55, $b9, $54, $01
