@@ -44,7 +44,7 @@ xposm7:  .byte 64 // Most significant byte Xpes sprite 0
 .const SPRITE5 = $7FD
 .const SPRITE6 = $7FE
 .const SPRITE7 = $7FF
-.const SP0VAL	= $2000
+.const SP0VAL	= $3000
 .const SP0X	= $D000
 .const SP0Y	= $D001
 .const SP1X = $D002
@@ -71,6 +71,7 @@ xposm7:  .byte 64 // Most significant byte Xpes sprite 0
 .const COLOR7   = $D02E
 .const INTCONTREG = $DC0D
 
+// Macro's
 .macro ClearScreen(clearByte) {
          ldx #$00
 !clear:  lda #$20     // #$20 is the spacebar Screen Code
@@ -158,32 +159,36 @@ over:  sty countp
 		sta SPRMULTI // Multicolor
 }
 
-		* = $4000 "Main Program"		// <- The name 'Main program' will appear in the memory map when assembling		jsr clear
+// Start of the main program
+* = $4000 "Main Program"		// <- The name 'Main program' will appear in the memory map when assembling		jsr clear
 begin:  SetBorderColor(00)
-		SetBackgroundColor(00)
+		SetBackgroundColor(00) // Basic setup 
 		ClearScreen(00)
     StretchSpriteX(%11111111)
     StretchSpriteY(%11111111)
     SpriteMultiColor(%11111111)
 
-		lda #$80	//using block 13 for sprite0
+    // Point the Spriter pointers to the correct memory locations $2000/$40=$80
+		lda #(SP0VAL/$40)	//using block 13 for sprite0
 		sta SPRITE0
-		lda #$81	//using block 13 for sprite0
+		lda #(SP0VAL/$40)+1	//using block 13 for sprite0
 		sta SPRITE1
-		lda #$82	//using block 13 for sprite0
+		lda #(SP0VAL/$40)+2	//using block 13 for sprite0
 		sta SPRITE2
-		lda #$81	//using block 13 for sprite0
+		lda #(SP0VAL/$40)+1	//using block 13 for sprite0
 		sta SPRITE3
-		lda #$81	//using block 13 for sprite0
+		lda #(SP0VAL/$40)+1	//using block 13 for sprite0
 		sta SPRITE4
-		lda #$83	//using block 13 for sprite0
+		lda #(SP0VAL/$40)+3	//using block 13 for sprite0
 		sta SPRITE5
-		lda #$84	//using block 13 for sprite0
+		lda #(SP0VAL/$40)+4	//using block 13 for sprite0
 		sta SPRITE6
-		
-		lda #%11111111		//enable sprites
+	  
+    // Enable sprites	0-6
+		lda #%01111111		//enable sprites
 		sta ENABLE
-		
+	
+    // Color to the sprites	
 		lda #05		//use red for sprite0
 		sta COLOR0
 		sta COLOR1
@@ -196,9 +201,14 @@ begin:  SetBorderColor(00)
     sta EXCOLOR1
     lda #07
     sta EXCOLOR2   // 3rd sprite color
-		
+
+    // Setup the SID
+    jsr music_init
+	
+    // Init the raster interrupt that does the animation	
     jsr rastinit // Setup the raster interrupt
-    
+
+    // Clear registers we used
 		ldx #0
 		lda #0
 		
@@ -211,13 +221,13 @@ start:
 		beq end
 		jmp scan
 
-		//clean up at the end
+//clean up at the end
 end:	jsr CLEAR
 		lda #0
 		sta ENABLE
 		rts
 
-    // Setup Raster interrupt
+// Setup Raster interrupt
 rastinit: lda #%01111111  // Switch of interrupt signals fram CIA-1
     sta INTCONTREG
 
@@ -235,6 +245,13 @@ rastinit: lda #%01111111  // Switch of interrupt signals fram CIA-1
     sta INTVICCONTREG
     rts
 
+// Music loader
+			*=$1000 "Music"
+			.label music_init =*			// <- You can define label with any value (not just at the current pc position as in 'music_init:') 
+			.label music_play =*+3			// <- and that is useful here
+			.import binary "ode to 64.bin"	// <- import is used for importing files (binary, source, c64 or text)	
+
+// Rasterbar and animation loop
 irq1: lda #7 // Turn screen border yellow
     sta FRAMCOL
 
@@ -256,10 +273,27 @@ irq1: lda #7 // Turn screen border yellow
     AnimSprite(6, bounce, pos6)
     AnimSprite(7, bounce, pos7)
 
-    ldx #90 // Wait loop
-pauze1: dex
-    bne pauze1
-    
+// Music IRQ
+    pha
+    txa
+    pha
+    tya
+    pha
+    lda #$ff // Acknowledge interrupt
+    sta	$d019
+
+    SetBorderColor(RED)			// <- This is how macros are executed
+    jsr music_play
+    SetBorderColor(BLACK)		// <- There are predefined constants for colors
+
+    pla
+    tay
+    pla
+    tax
+    pla
+		//	rti
+    // End Music
+
     lda #0 // Frame back to black (tm)
     sta FRAMCOL
 
