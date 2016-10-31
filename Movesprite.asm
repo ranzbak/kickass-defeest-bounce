@@ -73,232 +73,288 @@ xposm7:  .byte 64 // Most significant byte Xpes sprite 0
 
 // Macro's
 .macro ClearScreen(clearByte) {
-         ldx #$00
-!clear:  lda #$20     // #$20 is the spacebar Screen Code
-         sta $0400,x  // fill four areas with 256 spacebar characters
-         sta $0500,x
-         sta $0600,x 
-         sta $06e8,x 
-         lda #$00     // set foreground to black in Color Ram 
-         sta $d800,x  
-         sta $d900,x
-         sta $da00,x
-         sta $dae8,x
-         inx           // increment X
-         bne !clear-     // did X turn to zero yet?
+  ldx #$00
+    !clear:  lda #$20     // #$20 is the spacebar Screen Code
+    sta $0400,x  // fill four areas with 256 spacebar characters
+    sta $0500,x
+    sta $0600,x 
+    sta $06e8,x 
+    lda #$00     // set foreground to black in Color Ram 
+    sta $d800,x  
+    sta $d900,x
+    sta $da00,x
+    sta $dae8,x
+    inx           // increment X
+    bne !clear-     // did X turn to zero yet?
 }
 
 .macro MoveSpriteX(num, xposl, xposm) {
   ldy xposl // least significant position byte first
-  ldx xposm // most significant position byte
-  cpy #180
-  beq spritehigh
-  iny
-  iny
-  sty xposl
-  jmp spritexpos
-spritehigh:  inx // Add least significant byte to most significant
-  inx
-  stx xposm
-  cpx #180
-  bne spritexpos // When the msb reaches 160 start back at zero for both
-  ldx #0
-  stx xposl
-  stx xposm
-spritexpos: lda xposl
-  clc
-  adc xposm
-  sta SP0X+num*2
-  lda MSBX
-  ldx #num
-  and bitmaskinv, x // carry not set
-  bcc spritemost
-  ora bitmask, x // carry set
-spritemost: sta MSBX
+    ldx xposm // most significant position byte
+    cpy #180
+    beq spritehigh
+    iny
+    iny
+    sty xposl
+    jmp spritexpos
+    spritehigh:  inx // Add least significant byte to most significant
+    inx
+    stx xposm
+    cpx #180
+    bne spritexpos // When the msb reaches 160 start back at zero for both
+    ldx #0
+    stx xposl
+    stx xposm
+    spritexpos: lda xposl
+    clc
+    adc xposm
+    sta SP0X+num*2
+    lda MSBX
+    ldx #num
+    and bitmaskinv, x // carry not set
+    bcc spritemost
+    ora bitmask, x // carry set
+    spritemost: sta MSBX
 }
 
 .macro AnimSprite(num, animp, countp) {
   ldy countp // Get value
-  ldx fcount // Frame count
-  inx
-  cpx #03 // number of frames to wait
-  bne over
-  ldx #0
-  lda animp, y
-  sta SP0Y+num*2
-  iny // Cycle through animation
-  cpy #16
-  bne over
-  ldy #0
-over:  sty countp
-  stx fcount
+    ldx fcount // Frame count
+    inx
+    cpx #03 // number of frames to wait
+    bne over
+    ldx #0
+    lda animp, y
+    sta SP0Y+num*2
+    iny // Cycle through animation
+    cpy #16
+    bne over
+    ldy #0
+    over:  sty countp
+    stx fcount
 }
 
 .macro SetBorderColor(color) {
-	lda #color
-	sta $d020
+  lda #color
+  sta $d020
 }
 
 .macro SetBackgroundColor(color) {
-	lda #color
-	sta $d021
+  lda #color
+    sta $d021
 }
 
 .macro StretchSpriteX(bits) {
-		lda #bits	// Sprite 0 double size X
-		sta $D01D
+  lda #bits	// Sprite 0 double size X
+    sta $D01D
 }
 
 .macro StretchSpriteY(bits) {
-		lda #bits	// Sprite 0 double size Y
-		sta $D017
+  lda #bits	// Sprite 0 double size Y
+    sta $D017
 }
 
 .macro SpriteMultiColor(bits) {
-		lda #bits	// Sprite 0 double size Y
-		sta SPRMULTI // Multicolor
+  lda #bits	// Sprite 0 double size Y
+    sta SPRMULTI // Multicolor
 }
 
 // Start of the main program
 * = $4000 "Main Program"		// <- The name 'Main program' will appear in the memory map when assembling		jsr clear
-begin:  SetBorderColor(00)
-		SetBackgroundColor(00) // Basic setup 
-		ClearScreen(00)
-    StretchSpriteX(%11111111)
-    StretchSpriteY(%11111111)
-    SpriteMultiColor(%11111111)
+  begin:  SetBorderColor(BLACK)
+  SetBackgroundColor(BLACK) // Basic setup 
+  ClearScreen(00)
+  StretchSpriteX(%11111111)
+  StretchSpriteY(%11111111)
+SpriteMultiColor(%11111111)
 
-    // Point the Spriter pointers to the correct memory locations $2000/$40=$80
-		lda #(SP0VAL/$40)	//using block 13 for sprite0
-		sta SPRITE0
-		lda #(SP0VAL/$40)+1	//using block 13 for sprite0
-		sta SPRITE1
-		lda #(SP0VAL/$40)+2	//using block 13 for sprite0
-		sta SPRITE2
-		lda #(SP0VAL/$40)+1	//using block 13 for sprite0
-		sta SPRITE3
-		lda #(SP0VAL/$40)+1	//using block 13 for sprite0
-		sta SPRITE4
-		lda #(SP0VAL/$40)+3	//using block 13 for sprite0
-		sta SPRITE5
-		lda #(SP0VAL/$40)+4	//using block 13 for sprite0
-		sta SPRITE6
-	  
-    // Enable sprites	0-6
-		lda #%01111111		//enable sprites
-		sta ENABLE
-	
-    // Color to the sprites	
-		lda #05		//use red for sprite0
-		sta COLOR0
-		sta COLOR1
-		sta COLOR2
-		sta COLOR3
-		sta COLOR4
-		sta COLOR5
-		sta COLOR6
-    lda #09
-    sta EXCOLOR1
-    lda #07
-    sta EXCOLOR2   // 3rd sprite color
+  // Point the Spriter pointers to the correct memory locations $2000/$40=$80
+lda #(SP0VAL/$40)	//using block 13 for sprite0
+  sta SPRITE0
+  lda #(SP0VAL/$40)+1	//using block 13 for sprite0
+  sta SPRITE1
+  lda #(SP0VAL/$40)+2	//using block 13 for sprite0
+  sta SPRITE2
+  lda #(SP0VAL/$40)+1	//using block 13 for sprite0
+  sta SPRITE3
+  lda #(SP0VAL/$40)+1	//using block 13 for sprite0
+  sta SPRITE4
+  lda #(SP0VAL/$40)+3	//using block 13 for sprite0
+  sta SPRITE5
+  lda #(SP0VAL/$40)+4	//using block 13 for sprite0
+  sta SPRITE6
 
-    // Setup the SID
-    jsr music_init
-	
-    // Init the raster interrupt that does the animation	
-    jsr rastinit // Setup the raster interrupt
+  // Enable sprites	0-6
+  lda #%01111111		//enable sprites
+  sta ENABLE
 
-main:     ldy #$36         //load $7a into Y. this is the line where our rasterbar will start.
-         ldx #00         //;load $00 into X
-loop:     lda colors,x     //;load value at label 'colors' plus x into a. if we don't add x, only the first 
-                          //;value from our color-table will be read.
+  // Color to the sprites	
+  lda #05		//use red for sprite0
+  sta COLOR0
+  sta COLOR1
+  sta COLOR2
+  sta COLOR3
+  sta COLOR4
+  sta COLOR5
+  sta COLOR6
+  lda #09
+  sta EXCOLOR1
+  lda #07
+  sta EXCOLOR2   // 3rd sprite color
 
-         cpy $d012        //;ComPare current value in Y with the current rasterposition.
-         bne *-3          //;is the value of Y not equal to current rasterposition? then jump back 3 bytes (to cpy).
+  // Setup the SID
+  jsr music_init
 
-         sta $d025        //;if it IS equal, store the current value of A (a color of our rasterbar)
-                          //;into the sprite extra colour 1
+  // Init the raster interrupt that does the animation	
+  jsr rastinit // Setup the raster interrupt
 
-         cpx #153         // ;compare X to #51 (decimal). have we had all lines of our bar yet?
-         beq main        // ;Branch if EQual. if yes, jump to main.
+  main:     ldy #$36         //load $7a into Y. this is the line where our rasterbar will start.
+  ldx #00         //;load $00 into X
+  loop:     lda colors,x     //;load value at label 'colors' plus x into a. if we don't add x, only the first 
+  //;value from our color-table will be read.
 
-         inx              //;increase X. so now we're gonna read the next color out of the table.
-         iny              //;increase Y. go to the next rasterline.
+  cpy $d012        //;ComPare current value in Y with the current rasterposition.
+  bne *-3          //;is the value of Y not equal to current rasterposition? then jump back 3 bytes (to cpy).
 
-         jmp loop         //;jump to loop.
+  sta $d025        //;if it IS equal, store the current value of A (a color of our rasterbar)
+  //;into the sprite extra colour 1
 
-// Setup Raster interrupt
-rastinit: lda #%01111111  // Switch of interrupt signals fram CIA-1
-    sta INTCONTREG
+  cpx #153         // ;compare X to #51 (decimal). have we had all lines of our bar yet?
+  beq main        // ;Branch if EQual. if yes, jump to main.
 
-    and SCRCONTREG
-    sta SCRCONTREG
+  inx              //;increase X. so now we're gonna read the next color out of the table.
+  iny              //;increase Y. go to the next rasterline.
 
-    lda #$F9
-    sta CURRASTLN
+  jmp loop         //;jump to loop.
 
-    lda #<irq1
-    sta $0314
-    lda #>irq1
-    sta $0315
-    lda #%00000001
-    sta INTVICCONTREG
-    rts
+  // Setup Raster interrupt
+  rastinit: lda #%01111111  // Switch of interrupt signals fram CIA-1
+  sta INTCONTREG
 
-// Music loader
-			*=$1000 "Music"
-			.label music_init =*			// <- You can define label with any value (not just at the current pc position as in 'music_init:') 
-			.label music_play =*+3			// <- and that is useful here
-			.import binary "ode to 64.bin"	// <- import is used for importing files (binary, source, c64 or text)	
+  and SCRCONTREG
+  sta SCRCONTREG
+
+  lda #$F9
+  sta CURRASTLN
+
+  lda #<irq1
+  sta $0314
+  lda #>irq1
+  sta $0315
+  lda #%00000001
+  sta INTVICCONTREG
+  rts
+
+  // Music loader
+  *=$1000 "Music"
+  .label music_init =*			// <- You can define label with any value (not just at the current pc position as in 'music_init:') 
+  .label music_play =*+3			// <- and that is useful here
+  .import binary "ode to 64.bin"	// <- import is used for importing files (binary, source, c64 or text)	
+
+// Second interrupt to handle the Music
+irq1:
+  // Music IRQ
+  pha
+  txa
+  pha
+  tya
+  pha
+  lda #$ff // Acknowledge interrupt
+  sta	$d019
+
+  SetBorderColor(RED)			// <- This is how macros are executed
+  jsr music_play
+  SetBorderColor(BLACK)		// <- There are predefined constants for colors
+
+  pla
+  tay
+  pla
+  tax
+  pla
+
+  // Set the interrupt for SID handling
+  lda #<irq2 // Set inturrupt register to routine 2
+  ldx #>irq2
+  sta $0314
+  stx $0315
+
+  // Trigger at raster line 160
+  ldy #160
+  sty $d012
+
+  asl INTSTATREG
+  jmp $EA31
+
+// Set Border and backround to blue
+irq2:
+  lda #$ff // Acknowledge interrupt
+  sta	$d019
+
+  clc
+  ldx #$10
+!loop: dex
+  bpl !loop-
+  
+  SetBorderColor(BLUE)
+  SetBackgroundColor(BLUE)
+
+  // Set the interrupt for SID handling
+  lda #<irq3 // Set inturrupt register to routine 2
+  ldx #>irq3
+  sta $0314
+  stx $0315
+
+  // Trigger at raster line 160
+  ldy #$FF
+  sty $d012
+
+  asl INTSTATREG
+  jmp $EA31
 
 // Rasterbar and animation loop
-irq1: lda #7 // Turn screen border yellow
-    sta FRAMCOL
+irq3: 
+  lda #$ff // Acknowledge interrupt
+  sta	$d019
 
-    MoveSpriteX(0, xposl0, xposm0)
-    MoveSpriteX(1, xposl1, xposm1)
-    MoveSpriteX(2, xposl2, xposm2)
-    MoveSpriteX(3, xposl3, xposm3)
-    MoveSpriteX(4, xposl4, xposm4)
-    MoveSpriteX(5, xposl5, xposm5)
-    MoveSpriteX(6, xposl6, xposm6)
-    MoveSpriteX(7, xposl7, xposm7)
-    //MoveSpriteY(0)
-    AnimSprite(0, bounce, pos0)
-    AnimSprite(1, bounce, pos1)
-    AnimSprite(2, bounce, pos2)
-    AnimSprite(3, bounce, pos3)
-    AnimSprite(4, bounce, pos4)
-    AnimSprite(5, bounce, pos5)
-    AnimSprite(6, bounce, pos6)
-    AnimSprite(7, bounce, pos7)
+  lda #7 // Turn screen border yellow
+  sta FRAMCOL
+  SetBorderColor(YELLOW)		
 
-// Music IRQ
-    pha
-    txa
-    pha
-    tya
-    pha
-    lda #$ff // Acknowledge interrupt
-    sta	$d019
+  // Move sprites over the X axis
+  MoveSpriteX(0, xposl0, xposm0)
+  MoveSpriteX(1, xposl1, xposm1)
+  MoveSpriteX(2, xposl2, xposm2)
+  MoveSpriteX(3, xposl3, xposm3)
+  MoveSpriteX(4, xposl4, xposm4)
+  MoveSpriteX(5, xposl5, xposm5)
+  MoveSpriteX(6, xposl6, xposm6)
+  MoveSpriteX(7, xposl7, xposm7)
 
-    SetBorderColor(RED)			// <- This is how macros are executed
-    jsr music_play
-    SetBorderColor(BLACK)		// <- There are predefined constants for colors
+  // Move sprites over the Y axis
+  AnimSprite(0, bounce, pos0)
+  AnimSprite(1, bounce, pos1)
+  AnimSprite(2, bounce, pos2)
+  AnimSprite(3, bounce, pos3)
+  AnimSprite(4, bounce, pos4)
+  AnimSprite(5, bounce, pos5)
+  AnimSprite(6, bounce, pos6)
+  AnimSprite(7, bounce, pos7)
 
-    pla
-    tay
-    pla
-    tax
-    pla
-		//	rti
-    // End Music
+  SetBorderColor(BLACK)		
+  SetBackgroundColor(BLACK)
 
-    lda #0 // Frame back to black (tm)
-    sta FRAMCOL
+  // Set the interrupt for SID handling
+  lda #<irq1 // Set inturrupt register to routine 2
+  ldx #>irq1
+  sta $0314
+  stx $0315
 
-    asl INTSTATREG
-    jmp $EA31
+  // Trigger at raster line 160
+  ldy #20
+  sty $d012
+
+  asl INTSTATREG
+  jmp $EA31
 		 	
 // Bouncing animation data generation
 .var i=0;
