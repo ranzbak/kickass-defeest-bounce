@@ -180,6 +180,6 @@ raster_init:
 
 // Interrupt handling routines
 #import "Irq.asm"
-#import "raster2.asm"
+#import "Raster.asm"
 // Import object data
 #import "Data.asm"
