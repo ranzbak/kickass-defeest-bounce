@@ -22,17 +22,19 @@ irq1:
   pla
 
   // Set the interrupt for SID handling
-  lda #<irq2 // Set inturrupt register to routine 2
-  ldx #>irq2
-  sta $0314
-  stx $0315
+  lda #<rasirq1 // Set inturrupt register to routine 2
+  ldx #>rasirq1
+  sta INTVEC
+  stx INTVEC+1
 
   // Trigger at raster line 160
-  ldy #160
+  ldy #200
   sty $d012
 
-  asl INTSTATREG
-  jmp $EA31
+  rti
+
+  //asl INTSTATREG
+  //jmp $EA31
 
 // Set Border and backround to blue
 irq2:
@@ -50,15 +52,14 @@ irq2:
   // Set the interrupt for SID handling
   lda #<irq3 // Set inturrupt register to routine 2
   ldx #>irq3
-  sta $0314
-  stx $0315
+  sta INTVEC
+  stx INTVEC+1
 
   // Trigger at raster line 160
   ldy #$FF
   sty $d012
 
-  asl INTSTATREG
-  jmp $EA31
+  rti
 
 // Rasterbar and animation loop
 irq3: 
@@ -95,13 +96,12 @@ irq3:
   // Set the interrupt for SID handling
   lda #<irq1 // Set inturrupt register to routine 2
   ldx #>irq1
-  sta $0314
-  stx $0315
+  sta INTVEC
+  stx INTVEC+1
 
   // Trigger at raster line 160
   ldy #20
   sty $d012
 
-  asl INTSTATREG
-  jmp $EA31
+  rti
 

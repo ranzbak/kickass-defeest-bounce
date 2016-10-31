@@ -15,6 +15,7 @@
     bne !clear-     // did X turn to zero yet?
 }
 
+// Way to complicated routine to move sprites the full screen width
 .macro MoveSpriteX(num, xposl, xposm) {
   ldy xposl // least significant position byte first
     ldx xposm // most significant position byte

@@ -69,22 +69,55 @@ xposm7:  .byte 64 // Most significant byte Xpes sprite 0
 .const COLOR5   = $D02C
 .const COLOR6   = $D02D
 .const COLOR7   = $D02E
-.const INTCONTREG = $DC0D
+.const INTCONTREG1 = $DC0D // CIA 1 Interrupt control
+.const INTCONTREG2 = $DD0D // CIA 2 Interrupt control
+.const INTVEC   = $FFFE
 
 // Include macro's
 #import "Macro.asm"
 
 // Start of the main program
 * = $4000 "Main Program"		// <- The name 'Main program' will appear in the memory map when assembling		jsr clear
-  begin:  SetBorderColor(BLACK)
+begin:  
+  sei            // Disable interrupts
+  lda #%01111111 //Disable CIA IRQ's
+  sta INTCONTREG1      // Clear interrupt register1
+  sta INTCONTREG2      // Clear interrupt register2
+
+  lda #$35 //Bank out kernal and basic
+  sta $01  //$e000-$ffff
+
+  SetBorderColor(BLACK)
   SetBackgroundColor(BLACK) // Basic setup 
   ClearScreen(00)
+
+  // Initialize the sprites
+  jsr sprite_init
+
+  // Setup the SID
+  jsr music_init
+
+  // Init the raster interrupt that does the animation	
+  jsr raster_init // Setup the raster interrupt
+
+  // Start teh main routine
+  asl INTSTATREG  // Ack any previous raster interrupt
+  bit $dc0d    // reading the interrupt control registers 
+  bit $dd0d  // clears them
+  cli    //Allow IRQ's
+
+// Main endless loop
+main:     
+  jmp *       //;jump to loop.
+
+  // Sprite init
+sprite_init:
   StretchSpriteX(%11111111)
   StretchSpriteY(%11111111)
-SpriteMultiColor(%11111111)
+  SpriteMultiColor(%11111111)
 
   // Point the Spriter pointers to the correct memory locations $2000/$40=$80
-lda #(SP0VAL/$40)	//using block 13 for sprite0
+  lda #(SP0VAL/$40)	//using block 13 for sprite0
   sta SPRITE0
   lda #(SP0VAL/$40)+1	//using block 13 for sprite0
   sta SPRITE1
@@ -116,47 +149,26 @@ lda #(SP0VAL/$40)	//using block 13 for sprite0
   sta EXCOLOR1
   lda #07
   sta EXCOLOR2   // 3rd sprite color
-
-  // Setup the SID
-  jsr music_init
-
-  // Init the raster interrupt that does the animation	
-  jsr rastinit // Setup the raster interrupt
-
-main:     ldy #$36         //load $7a into Y. this is the line where our rasterbar will start.
-  ldx #00         //;load $00 into X
-!loop:     lda colors,x     //;load value at label 'colors' plus x into a. if we don't add x, only the first 
-  //;value from our color-table will be read.
-
-  cpy $d012        //;ComPare current value in Y with the current rasterposition.
-  bne *-3          //;is the value of Y not equal to current rasterposition? then jump back 3 bytes (to cpy).
-
-  sta $d025        //;if it IS equal, store the current value of A (a color of our rasterbar)
-  //;into the sprite extra colour 1
-
-  cpx #153         // ;compare X to #51 (decimal). have we had all lines of our bar yet?
-  beq main        // ;Branch if EQual. if yes, jump to main.
-
-  inx              //;increase X. so now we're gonna read the next color out of the table.
-  iny              //;increase Y. go to the next rasterline.
-
-  jmp !loop-         //;jump to loop.
+  rts
 
   // Setup Raster interrupt
-rastinit: lda #%01111111  // Switch of interrupt signals fram CIA-1
-  sta INTCONTREG
+raster_init: 
+  //lda #%01111111  // Switch of interrupt signals from CIA-1
+  //sta INTCONTREG
 
-  and SCRCONTREG
+  //and SCRCONTREG
+  lda #$1b //Clear the High bit (lines 256-318)
   sta SCRCONTREG
 
-  lda #$F9
+  lda #$F8
   sta CURRASTLN
 
   lda #<irq1
-  sta $0314
+  sta INTVEC
   lda #>irq1
-  sta $0315
+  sta INTVEC+1
   lda #%00000001
+  sta INTSTATREG
   sta INTVICCONTREG
   rts
 
@@ -168,5 +180,6 @@ rastinit: lda #%01111111  // Switch of interrupt signals fram CIA-1
 
 // Interrupt handling routines
 #import "Irq.asm"
+#import "raster2.asm"
 // Import object data
 #import "Data.asm"
