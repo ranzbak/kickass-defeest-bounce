@@ -30,12 +30,19 @@ pos7:    .byte 28 // Array animation position pointer 0
 xposl7:  .byte 180 // Least significant byte Xpos sprite 0
 xposm7:  .byte 64 // Most significant byte Xpes sprite 0
 		
+// Zero page
+.const Q = 2
+.const XPIXSHIFT = 4
+.const TMP1 = 5
+.const TEXTADR = 6
+
 //helpful labels
 .const CLEAR = $E544
 .const GETIN  =  $FFE4
 .const SCNKEY =  $FF9F
 
 //sprite 0 setup
+.const SCRLADR = $7c0	 
 .const SPRITE0 = $7F8
 .const SPRITE1 = $7F9
 .const SPRITE2 = $7FA
@@ -69,6 +76,7 @@ xposm7:  .byte 64 // Most significant byte Xpes sprite 0
 .const COLOR5   = $D02C
 .const COLOR6   = $D02D
 .const COLOR7   = $D02E
+.const SCRCLRADR = $DB97 // Color memory last line
 .const INTCONTREG1 = $DC0D // CIA 1 Interrupt control
 .const INTCONTREG2 = $DD0D // CIA 2 Interrupt control
 .const INTVEC   = $FFFE
@@ -87,9 +95,21 @@ begin:
   lda #$35 //Bank out kernal and basic
   sta $01  //$e000-$ffff
 
-  SetBorderColor(BLACK)
-  SetBackgroundColor(BLACK) // Basic setup 
+  SetBorderColor(BLACK) // Initialize the screen memory
+  SetBackgroundColor(BLACK) 
   ClearScreen(00)
+	SetTextColor(WHITE) 
+
+	// Text to lowercase
+  lda #23   
+  sta $d018 // Text mode to lower
+
+  // Init text scroller
+  lda #<text 
+  sta TEXTADR
+  lda #>text
+  sta TEXTADR+1
+
 
   // Initialize the sprites
   jsr sprite_init
@@ -109,6 +129,7 @@ begin:
 // Main endless loop
 main:     
   jmp *       //;jump to loop.
+
 
   // Sprite init
 sprite_init:
@@ -178,8 +199,11 @@ raster_init:
   .label music_play =*+3			// <- and that is useful here
   .import binary "ode to 64.bin"	// <- import is used for importing files (binary, source, c64 or text)	
 
+	
+
 // Interrupt handling routines
 #import "Irq.asm"
 #import "Raster.asm"
 // Import object data
 #import "Data.asm"
+#import "Scroll.asm"

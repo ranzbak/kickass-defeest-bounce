@@ -72,6 +72,17 @@
     sta $d021
 }
 
+// Set the color on the last line
+.macro SetTextColor(color) {
+	lda #color
+	ldy #80
+colorloop:
+	sta SCRCLRADR, y
+	dey
+	bne colorloop
+}
+  
+
 .macro StretchSpriteX(bits) {
   lda #bits	// Sprite 0 double size X
     sta $D01D

@@ -22,13 +22,13 @@ irq1:
   pla
 
   // Set the interrupt for SID handling
-  lda #<rasirq1 // Set inturrupt register to routine 2
-  ldx #>rasirq1
+  lda #<scroll_irq // Set inturrupt register to routine 2
+  ldx #>scroll_irq
   sta INTVEC
   stx INTVEC+1
 
-  // Trigger at raster line 160
-  ldy #200
+  // Trigger at raster line 200
+  ldy #60
   sty $d012
 
   rti
@@ -55,7 +55,7 @@ irq2:
   sta INTVEC
   stx INTVEC+1
 
-  // Trigger at raster line 160
+  // Trigger at raster line 255
   ldy #$FF
   sty $d012
 
@@ -99,7 +99,7 @@ irq3:
   sta INTVEC
   stx INTVEC+1
 
-  // Trigger at raster line 160
+  // Trigger at raster line 20
   ldy #20
   sty $d012
 
